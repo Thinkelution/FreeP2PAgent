@@ -16,7 +16,10 @@ function createCoordinator(options = {}) {
     if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 256000) ws.send(JSON.stringify(data));
     else if (ws.bufferedAmount >= 256000) ws.close(1008, 'Slow consumer');
   }
-  function presence(ws) { send(ws, { type: 'presence', peers: [...ws.watch].filter(id => peers.has(id)) }); }
+  function presence(ws) {
+    const online = [...ws.watch].filter(id => peers.has(id));
+    send(ws, { type: 'presence', peers: online, sessions: Object.fromEntries(online.map(id => [id, peers.get(id).instance])) });
+  }
   function broadcast() { for (const ws of peers.values()) presence(ws); }
   function ice(id) {
     if (options.iceServers) return options.iceServers;
@@ -47,7 +50,7 @@ function createCoordinator(options = {}) {
           const peerId = idFor(msg.publicKey);
           const name = cleanName(msg.name);
           if (peers.has(peerId)) peers.get(peerId).close(4001, 'Identity connected elsewhere');
-          ws.peerId = peerId; ws.name = name; peers.set(peerId, ws); clearTimeout(timeout);
+          ws.peerId = peerId; ws.name = name; ws.instance = crypto.randomUUID(); peers.set(peerId, ws); clearTimeout(timeout);
           send(ws, { type: 'ready', id: peerId, iceServers: ice(peerId) }); broadcast();
           return;
         }

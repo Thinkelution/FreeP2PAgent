@@ -7,7 +7,7 @@ const DEFAULT_URL = 'wss://freep2pagent.thinkelution.com/ws';
 class Agent extends EventEmitter {
   constructor(directory, secureStorage, overrides = {}) {
     super(); this.directory = directory; this.storage = secureStorage; this.overrides = overrides;
-    this.online = false; this.present = new Set(); this.seen = new Map(); this.delay = 1000; this.stopped = true;
+    this.online = false; this.present = new Set(); this.sessions = new Map(); this.seen = new Map(); this.delay = 1000; this.stopped = true;
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
     this.file = path.join(directory, 'profile.json');
     if (fs.existsSync(this.file)) {
@@ -62,6 +62,9 @@ class Agent extends EventEmitter {
     else if (msg.type === 'presence') {
       const previous = this.present; this.present = new Set(msg.peers);
       for (const id of this.present) {
+        const instance = msg.sessions?.[id];
+        if (instance && this.sessions.has(id) && this.sessions.get(id) !== instance) this.emit('disconnect-peer', id);
+        if (instance) this.sessions.set(id, instance);
         const c = this.data.contacts[id];
         if (c && !previous.has(id) && c.status !== 'incoming') this.packet(id, c.status === 'accepted' ? 'accept' : 'request', { name: this.data.name });
       }

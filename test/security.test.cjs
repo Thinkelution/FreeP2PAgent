@@ -6,6 +6,22 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { createIdentity, invite, parseInvite, envelope, unpack, sign } = require('../shared/identity.cjs');
 const { FileVault } = require('../desktop/files.cjs');
+const { Agent } = require('../desktop/agent.cjs');
+test('friend restart invalidates a stale peer session without waiting for ICE timeout', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freep2p-session-'));
+  const storage = { encryptString: s => Buffer.from(s), decryptString: b => b.toString() };
+  const agent = new Agent(dir, storage);
+  try {
+    const friend = createIdentity(); agent.add(invite(friend, 'Friend'));
+    const disconnected = []; agent.on('disconnect-peer', id => disconnected.push(id));
+    agent.receive({ type: 'presence', peers: [friend.id], sessions: { [friend.id]: 'first' } });
+    agent.receive({ type: 'presence', peers: [], sessions: {} });
+    agent.receive({ type: 'presence', peers: [friend.id], sessions: { [friend.id]: 'second' } });
+    assert.deepEqual(disconnected, [friend.id]);
+    agent.receive({ type: 'presence', peers: [friend.id], sessions: { [friend.id]: 'second' } });
+    assert.equal(disconnected.length, 1);
+  } finally { agent.stop(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
 test('invites bind names to keys; packets reject modification, replay, wrong recipient and stale time', () => {
   const alice = createIdentity(), bob = createIdentity();
   assert.equal(parseInvite(invite(alice, 'Alice')).id, alice.id);

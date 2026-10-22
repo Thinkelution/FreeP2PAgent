@@ -35,7 +35,7 @@ The default coordinator is `wss://freep2pagent.thinkelution.com/ws`. For develop
 
 Download artifacts from a successful Actions run. Preview builds are unsigned; macOS builds are not notarized. Linux needs an unlocked Secret Service keyring (GNOME Keyring or KWallet); tray visibility depends on the desktop environment. Build status in Actions is authoritative.
 
-Windows/Linux E2E uses local direct peers. Hosted macOS runners use the real external relay because local discovery is restricted in those VMs; that test requires the deployed coordinator/relay to be reachable. On macOS, allow Local Network access when the OS prompts to enable LAN connections.
+Windows/Linux E2E uses local direct peers. Hosted macOS runners use the real external relay because direct loopback tests time out in those VMs; that test requires the deployed coordinator/relay to be reachable. On macOS, allow Local Network access when the OS prompts to enable LAN connections. Direct LAN behavior on physical Macs still needs validation.
 
 ```sh
 npm run check
