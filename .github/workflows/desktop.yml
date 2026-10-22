@@ -40,9 +40,15 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
-      - name: Desktop integration test (Windows and macOS)
-        if: runner.os != 'Linux'
+      - name: Desktop integration test (Windows)
+        if: runner.os == 'Windows'
         run: npm run test:e2e
+      - name: Desktop integration test (macOS, external relay)
+        if: runner.os == 'macOS'
+        run: npm run test:e2e
+        env:
+          FP_E2E_COORDINATOR: wss://freep2pagent.thinkelution.com/ws
+          FP_E2E_RELAY: '1'
       - name: Desktop integration test (Linux)
         if: runner.os == 'Linux'
         run: |

@@ -19,12 +19,13 @@ test('two desktop agents pair, chat, transfer a real file, reject a transfer, an
     // Keep the real WebRTC transport, but expose loopback candidates in test processes only.
     const app = await electron.launch({ args: [path.resolve(__dirname, '../..'), '--disable-features=WebRtcHideLocalIpsWithMdns', '--enable-features=WebRtcAllowLoopbackInPeerConnection'], env });
     apps.push(app); const page = await app.firstWindow();
-    if (process.env.FP_E2E_RELAY) {
-      await page.evaluate(() => {
-        const Native = window.RTCPeerConnection;
-        window.RTCPeerConnection = class extends Native { constructor(config) { super({ ...config, iceTransportPolicy: 'relay' }); } };
-      });
-    }
+    await page.evaluate(forceRelay => {
+      const Native = window.RTCPeerConnection;
+      window.__testConnections = [];
+      window.RTCPeerConnection = class extends Native {
+        constructor(config) { super(forceRelay ? { ...config, iceTransportPolicy: 'relay' } : config); window.__testConnections.push(this); }
+      };
+    }, Boolean(process.env.FP_E2E_RELAY));
     page.on('pageerror', error => console.error(name, error.message));
     page.on('console', message => { if (message.type() === 'error') console.error(name, message.text()); });
     await expect(page.locator('#coordinatorStatus')).toHaveText('● Coordinator connected', { timeout: 20000 });
@@ -42,6 +43,12 @@ test('two desktop agents pair, chat, transfer a real file, reject a transfer, an
     await b.page.locator('.friend').click(); await b.page.getByRole('button', { name: 'Accept friend', exact: true }).click();
     await expect(a.page.locator('#connectionStatus')).toContainText(route, { timeout: 40000 }).catch(async e => {
       console.log('Notices', await a.page.locator('#toast').textContent(), await b.page.locator('#toast').textContent());
+      for (const p of [a.page, b.page]) console.log('ICE diagnostics', await p.evaluate(async () => Promise.all(window.__testConnections.map(async pc => ({
+        state: pc.connectionState, ice: pc.iceConnectionState, gathering: pc.iceGatheringState,
+        localType: pc.localDescription?.type, remoteType: pc.remoteDescription?.type,
+        candidates: pc.localDescription?.sdp.split('\n').filter(s => s.startsWith('a=candidate:')).map(s => ({ mdns: s.includes('.local'), type: s.match(/typ (\w+)/)?.[1] })),
+        pairs: [...(await pc.getStats()).values()].filter(s => s.type === 'candidate-pair').map(s => ({ state: s.state, requestsSent: s.requestsSent, requestsReceived: s.requestsReceived }))
+      })))));
       throw e;
     });
     await expect(b.page.locator('#connectionStatus')).toContainText(route, { timeout: 40000 });
