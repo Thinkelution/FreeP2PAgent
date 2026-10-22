@@ -4,6 +4,8 @@ An open-source personal peer agent for friends, direct chat, file transfers, and
 
 **Version 0.1.0: desktop MVP for Windows, macOS, and Linux. Android and inference are future work.**
 
+[Website & downloads](https://thinkelution.github.io/FreeP2PAgent/) · [Release notes](docs/releases/v0.1.0.md) · [GitHub releases](https://github.com/Thinkelution/FreeP2PAgent/releases)
+
 ## Concept
 
 Install a Windows tray app, macOS menu-bar app, or Android app. Create a local identity, choose a display name, invite friends, and exchange messages and files over authenticated encrypted connections. An optional directory helps friends find each other. Location sharing is optional and separate from identity.
