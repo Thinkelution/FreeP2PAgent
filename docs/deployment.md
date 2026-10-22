@@ -27,7 +27,7 @@ Upload `coordinator/`, `shared/`, and `deploy/install.py` into `/home/administra
 sudo python3 /home/administrator/freep2p-release/deploy/install.py /home/administrator/freep2p-release
 ```
 
-The installer creates a release, installs the pinned production ws dependency, sets up systemd and a dedicated nginx vhost, obtains a Let's Encrypt certificate, and configures coturn. Review server-specific paths before reuse. The coordinator supports the host's existing Node runtime, but a maintained Node 24 runtime is recommended for ongoing operation.
+The installer creates a release, installs the pinned production ws dependency, sets up systemd and a dedicated nginx vhost, obtains a Let's Encrypt certificate, and configures coturn. It installs an isolated Node 24 runtime under `/opt/freep2pagent/runtime`, checking its archive against the official HTTPS SHA-256 manifest. The system Node runtime and other apps are unchanged. Review server-specific paths before reuse; refresh the private runtime as security releases become available.
 
 Certbot renews the certificate; a deployment hook validates/reloads nginx. Desktop CI has no server credentials and does not deploy the coordinator.
 

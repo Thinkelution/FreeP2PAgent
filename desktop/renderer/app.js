@@ -50,17 +50,24 @@ function renderConversation() {
 }
 function size(bytes) { return bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`; }
 function renderTransfers() {
-  $('transfers').replaceChildren();
-  for (const view of [...transferViews.values()].filter(t => t.peer === selected).slice(-8)) {
+  const views = [...transferViews.values()].filter(t => t.peer === selected).slice(-8);
+  for (const node of [...$('transfers').children]) if (!views.some(v => v.id === node.dataset.transfer)) node.remove();
+  for (const view of views) {
     const t = transport.transfers.get(transport.key(view.peer, view.id));
-    const card = element('div', undefined, 'transfer'); card.dataset.transfer = t.id;
-    card.append(element('strong', `${t.direction === 'out' ? '↑' : '↓'} ${t.name}`), element('small', `${t.status} · ${size(t.progress)} / ${size(t.size)}`));
-    const progress = element('progress'); progress.max = t.size || 1; progress.value = t.size ? t.progress : t.finished ? 1 : 0; card.append(progress);
-    if (!t.finished) {
-      if (t.direction === 'in' && !t.localId) { const accept = element('button', 'Accept file', 'primary'); accept.onclick = run(() => transport.accept(t)); card.append(accept); }
+    if (!t) continue;
+    let card = [...$('transfers').children].find(n => n.dataset.transfer === t.id);
+    if (!card) {
+      card = element('div', undefined, 'transfer'); card.dataset.transfer = t.id;
+      card.append(element('strong'), element('small'), element('progress'));
+      const accept = element('button', 'Accept file', 'primary'); accept.onclick = run(() => transport.accept(t)); card.append(accept);
       const cancel = element('button', 'Cancel transfer'); cancel.onclick = run(() => transport.cancel(t)); card.append(cancel);
+      $('transfers').append(card);
     }
-    $('transfers').append(card);
+    card.querySelector('strong').textContent = `${t.direction === 'out' ? '↑' : '↓'} ${t.name}`;
+    card.querySelector('small').textContent = `${t.status} · ${size(t.progress)} / ${size(t.size)}`;
+    const progress = card.querySelector('progress'); progress.max = t.size || 1; progress.value = t.size ? t.progress : t.finished ? 1 : 0;
+    card.querySelectorAll('button')[0].hidden = t.finished || t.direction !== 'in' || Boolean(t.localId);
+    card.querySelectorAll('button')[1].hidden = t.finished;
   }
 }
 for (const id of ['addButton', 'welcomeAdd']) $(id).onclick = () => $('addDialog').showModal();

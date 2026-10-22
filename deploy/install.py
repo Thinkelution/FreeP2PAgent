@@ -5,6 +5,7 @@ Run as root: python3 install.py /home/administrator/freep2p-release
 Does not print secrets; keeps previous nginx config and coordinator release.
 """
 import datetime
+import hashlib
 import json
 import os
 import pathlib
@@ -12,6 +13,8 @@ import secrets
 import shutil
 import subprocess
 import sys
+import tarfile
+import urllib.request
 
 def run(*args):
     subprocess.run(args, check=True)
@@ -21,12 +24,27 @@ assert source.is_dir() and source.parent == pathlib.Path('/home/administrator')
 assert (source / 'coordinator/server.cjs').is_file()
 root = pathlib.Path('/opt/freep2pagent')
 root.mkdir(exist_ok=True)
+runtime = root / 'runtime'
+runtime.mkdir(exist_ok=True)
+node = runtime / 'current/bin/node'
+if not node.exists():
+    base = 'https://nodejs.org/dist/latest-v24.x/'
+    checksums = urllib.request.urlopen(base + 'SHASUMS256.txt', timeout=30).read().decode()
+    checksum, archive_name = next(line.split() for line in checksums.splitlines() if line.endswith('-linux-x64.tar.xz'))
+    archive = runtime / archive_name
+    with urllib.request.urlopen(base + archive_name, timeout=60) as response, archive.open('wb') as output:
+        shutil.copyfileobj(response, output)
+    assert hashlib.sha256(archive.read_bytes()).hexdigest() == checksum, 'Node runtime checksum mismatch'
+    with tarfile.open(archive) as package:
+        package.extractall(runtime, filter='data')
+    (runtime / 'current').symlink_to(runtime / archive_name.removesuffix('.tar.xz'))
+run(str(node), '--version')
 release = root / 'releases' / datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')
 release.mkdir(parents=True)
 for folder in ['coordinator', 'shared']:
     shutil.copytree(source / folder, release / folder)
 (release / 'package.json').write_text(json.dumps({'name': 'freep2pagent-coordinator', 'version': '0.1.0', 'private': True, 'dependencies': {'ws': '8.22.0'}}))
-run('npm', 'install', '--omit=dev', '--ignore-scripts', '--prefix', str(release))
+run(str(node), str(runtime / 'current/lib/node_modules/npm/bin/npm-cli.js'), 'install', '--omit=dev', '--ignore-scripts', '--prefix', str(release))
 if subprocess.run(['id', 'freep2pagent'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
     run('useradd', '--system', '--home-dir', str(root), '--shell', '/usr/sbin/nologin', 'freep2pagent')
 current = root / 'current'
@@ -53,7 +71,7 @@ After=network-online.target
 User=freep2pagent
 Group=freep2pagent
 WorkingDirectory=/opt/freep2pagent/current
-ExecStart=/usr/bin/node /opt/freep2pagent/current/coordinator/server.cjs
+ExecStart=/opt/freep2pagent/runtime/current/bin/node /opt/freep2pagent/current/coordinator/server.cjs
 EnvironmentFile=/etc/freep2pagent/coordinator.env
 Restart=on-failure
 RestartSec=3
@@ -183,5 +201,6 @@ StateDirectory=freep2pagent-turn
 WantedBy=multi-user.target
 ''')
 run('systemctl', 'daemon-reload')
-run('systemctl', 'enable', '--now', 'freep2pagent-relay')
+run('systemctl', 'enable', 'freep2pagent-relay')
+run('systemctl', 'restart', 'freep2pagent-relay')
 print('Relay configured; validate authenticated external connectivity before claiming availability.')

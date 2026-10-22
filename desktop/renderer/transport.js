@@ -18,7 +18,7 @@ export class PeerTransport {
   create(id, session) {
     clearTimeout(this.retries.get(id)); this.retries.delete(id);
     const pc = new RTCPeerConnection({ iceServers: this.snapshot.iceServers, iceTransportPolicy: 'all' });
-    const p = { pc, session, chain: Promise.resolve(), queued: 0, status: 'Connecting', timer: setTimeout(() => this.fail(id, new Error('Connection timed out. Check network or relay configuration.')), 35000) };
+    const p = { pc, session, chain: Promise.resolve(), queued: 0, status: 'Starting', timer: setTimeout(() => this.fail(id, new Error('Connection timed out. Check network or relay configuration.')), 35000) };
     this.peers.set(id, p);
     pc.ondatachannel = event => { if (p.dc) event.channel.close(); else this.channel(id, p, event.channel); };
     pc.onconnectionstatechange = () => {
@@ -88,7 +88,7 @@ export class PeerTransport {
       p.chain = p.chain.then(() => this.receive(id, JSON.parse(event.data))).catch(e => this.fail(id, e)).finally(() => p.queued--);
     };
   }
-  status(id, status) { const p = this.peers.get(id); if (p) p.status = status; this.callbacks.status(id, status); }
+  status(id, status) { const p = this.peers.get(id); if (p?.status === status) return; if (p) p.status = status; this.callbacks.status(id, status); }
   ready(id) { return this.peers.get(id)?.dc?.readyState === 'open'; }
   send(id, data) {
     const dc = this.peers.get(id)?.dc;
