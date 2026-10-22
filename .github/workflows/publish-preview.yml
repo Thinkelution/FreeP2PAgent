@@ -1,0 +1,31 @@
+name: Publish tested preview
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify tested source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh run view 39829261419 --json conclusion --jq .conclusion)" = success
+          test "$(gh run view 39829261419 --json headSha --jq .headSha)" = bc95ed981b91789ed8715ce6d4f6820d55bdec6b
+      - name: Download tested native packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39829261419 --pattern 'FreeP2PAgent-*' --dir packages
+      - name: Publish preview and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir release
+          find packages -type f -exec cp -t release {} +
+          cd release
+          sha256sum * > SHA256SUMS.txt
+          cd ..
+          gh release create v0.1.0 release/* --target bc95ed981b91789ed8715ce6d4f6820d55bdec6b --prerelease --title 'v0.1.0 — Desktop preview' --notes-file docs/releases/v0.1.0.md

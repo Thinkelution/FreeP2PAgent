@@ -3,7 +3,9 @@ on:
   push:
     branches: [main, 'codex/**']
     tags: ['v*']
+    paths-ignore: ['site/**', 'docs/releases/**', '.github/workflows/pages.yml', '.github/workflows/publish-preview.yml']
   pull_request:
+    paths-ignore: ['site/**', 'docs/releases/**', '.github/workflows/pages.yml', '.github/workflows/publish-preview.yml']
   workflow_dispatch:
 permissions:
   contents: read
