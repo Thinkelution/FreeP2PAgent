@@ -1,0 +1,32 @@
+{
+  "name": "freep2pagent",
+  "version": "0.1.0",
+  "description": "Your friends, directly connected. Desktop peer-to-peer chat and file transfer.",
+  "author": "Thinkelution",
+  "license": "MIT",
+  "homepage": "https://github.com/Thinkelution/FreeP2PAgent",
+  "main": "desktop/main.cjs",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "start": "electron .",
+    "coordinator": "node coordinator/server.cjs",
+    "test": "node --test test/*.test.cjs",
+    "test:e2e": "playwright test",
+    "check": "node scripts/check.cjs",
+    "build": "electron-builder --publish never"
+  },
+  "dependencies": { "ws": "8.22.0" },
+  "devDependencies": { "electron": "45.0.0", "electron-builder": "26.15.3", "@playwright/test": "1.64.1" },
+  "build": {
+    "appId": "com.thinkelution.freep2pagent",
+    "productName": "FreeP2PAgent",
+    "asar": true,
+    "directories": { "output": "dist" },
+    "files": ["desktop/**/*", "shared/**/*", "assets/**/*", "package.json", "LICENSE", "NOTICE"],
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "win": { "target": ["nsis", "zip"], "icon": "assets/icon.png" },
+    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true },
+    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.social-networking", "identity": null, "icon": "assets/icon.png" },
+    "linux": { "target": ["AppImage", "deb"], "category": "Network", "icon": "assets/icon.png", "maintainer": "Thinkelution" }
+  }
+}

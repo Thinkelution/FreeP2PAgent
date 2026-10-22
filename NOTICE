@@ -1,0 +1,8 @@
+FreeP2PAgent starts from the Electron tray / isolated preload / WebSocket
+signaling architecture of Thinkelution/its-my-server, inspected at commit
+fef9dd7570a59da3dea95bd3a4e620fb3abc4bf1 (MIT per electron/package.json).
+Copyright (c) 2026 Thinkelution.
+
+The friend identity, authenticated signaling, coordinator, direct transport,
+and file-transfer implementation are written for FreeP2PAgent. Existing
+ItsMyServer services, credentials, and user data are not included.

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>FreeP2PAgent</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<aside>
+  <div class="brand"><div class="mark">↗</div><div>FreeP2PAgent<small>YOUR PEOPLE. DIRECTLY.</small></div></div>
+  <div class="identity"><span class="avatar" id="myAvatar">M</span><div><strong id="myName">My device</strong><small id="coordinatorStatus">Connecting…</small></div><button class="icon" id="settingsButton" aria-label="Settings">⚙</button></div>
+  <button class="primary" id="addButton">＋ Add a friend</button>
+  <div class="section-label">YOUR FRIENDS <span id="friendCount">0</span></div>
+  <div id="friends" class="friends"></div>
+  <div class="sidebar-bottom"><button id="copyInvite">Copy my invite <span>↗</span></button><small>Share it privately with someone you trust.</small><div class="version">DESKTOP PREVIEW <span>v0.1.0</span></div></div>
+</aside>
+<main>
+  <header><div><div class="eyebrow">YOUR PRIVATE CONNECTION</div><h1 id="conversationTitle">A little closer, wherever you are.</h1></div><span class="badge" id="connectionStatus">Choose a friend</span></header>
+  <div id="welcome" class="welcome"><div class="orbit"><span>↗</span></div><h2>Good company.<br>Direct connection.</h2><p>Chat and send files straight to your friends’ devices.<br>Your files stay with you. Your connections stay personal.</p><button id="welcomeAdd" class="primary">Make your first connection</button><div class="feature-row"><span>◇ Encrypted in transit</span><span>↔ Peer-to-peer</span><span>◎ Open source</span></div></div>
+  <section id="conversation" hidden>
+    <div class="contact-bar"><span id="fingerprint"></span><button id="retryPeer">Reconnect</button><button id="removeFriend" class="danger">Remove & block</button></div>
+    <div id="pending" class="pending" hidden><p id="pendingText"></p><button id="acceptFriend" class="primary">Accept friend</button></div>
+    <div id="messages" class="messages" aria-live="polite"></div>
+    <div id="transfers" class="transfers"></div>
+    <form id="chatForm" class="composer"><button type="button" id="sendFile" title="Send a file" aria-label="Send a file">＋</button><input id="messageInput" placeholder="Message your friend…" maxlength="8000" autocomplete="off" aria-label="Message"><button class="primary" id="sendMessage" type="submit">Send ↗</button></form>
+    <footer>Messages are saved on this device. Both friends must be online to connect.</footer>
+  </section>
+  <div id="toast" role="status" hidden></div>
+</main>
+<dialog id="addDialog"><form id="addForm"><div class="eyebrow">START WITH AN INVITE</div><h2>Add your friend</h2><p>Ask them to copy their invite, then paste it below.<br>They’ll receive a request when both of you are online.</p><label for="inviteInput">Friend’s invite</label><textarea id="inviteInput" rows="4" placeholder="freep2p:…" required></textarea><div class="dialog-actions"><button type="button" data-close="addDialog">Cancel</button><button class="primary" type="submit">Send request</button></div></form></dialog>
+<dialog id="settingsDialog"><form id="settingsForm"><div class="eyebrow">MAKE IT YOURS</div><h2>Your device</h2><label for="nameInput">Display name</label><input id="nameInput" maxlength="60" required><label for="coordinatorInput">Coordinator</label><input id="coordinatorInput" type="url" required><p>The coordinator introduces devices. Chat and files use an encrypted peer connection, with a relay when configured and needed.</p><label>Your identity fingerprint</label><code id="myFingerprint"></code><p class="muted">Verify fingerprints with your friend through another trusted channel. Closing the window keeps the agent running in the tray.</p><div class="dialog-actions"><button type="button" data-close="settingsDialog">Cancel</button><button class="primary" type="submit">Save & reconnect</button></div></form></dialog>
+<dialog id="removeDialog"><h2>Remove this friend?</h2><p>This deletes their local chat history and blocks new requests.<br>You can add them again using their invite.</p><div class="dialog-actions"><button data-close="removeDialog">Cancel</button><button id="confirmRemove" class="danger">Remove & block</button></div></dialog>
+<script type="module" src="app.js"></script></body></html>
