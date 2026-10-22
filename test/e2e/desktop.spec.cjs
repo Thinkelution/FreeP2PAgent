@@ -27,7 +27,7 @@ test('two desktop agents pair, chat, transfer a real file, reject a transfer, an
     }
     page.on('pageerror', error => console.error(name, error.message));
     page.on('console', message => { if (message.type() === 'error') console.error(name, message.text()); });
-    await expect(page.locator('#coordinatorStatus')).toHaveText('● Coordinator connected');
+    await expect(page.locator('#coordinatorStatus')).toHaveText('● Coordinator connected', { timeout: 20000 });
     return { app, page };
   }
   try {

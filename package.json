@@ -26,7 +26,7 @@
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "win": { "target": ["nsis", "zip"], "icon": "assets/icon.png" },
     "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true },
-    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.social-networking", "identity": null, "icon": "assets/icon.png" },
+    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.social-networking", "identity": null, "icon": "assets/icon.png", "extendInfo": { "NSLocalNetworkUsageDescription": "FreeP2PAgent connects directly to your accepted friends for chat and file transfers." } },
     "linux": { "target": ["AppImage", "deb"], "category": "Network", "icon": "assets/icon.png", "maintainer": "Thinkelution" }
   }
 }

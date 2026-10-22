@@ -48,4 +48,4 @@ The previous release is recorded at `/opt/freep2pagent/previous-release`. Inspec
 
 Identity is SHA-256 of an Ed25519 public key. Coordinator authentication signs a fresh challenge. Every contact/signaling envelope has sender, recipient, timestamp, nonce and signature. Signed SDP binds the peer's DTLS fingerprint to its accepted identity. The coordinator accepts only contact control and SDP, never chat or file content.
 
-Presence is accessible to holders of a high-entropy device ID; the preview does not enforce a durable mutual friendship graph on the server. Chat history remains local. Files use 32 KiB chunks and disk-write acknowledgments, favoring bounded memory over maximum high-latency throughput. Received files are finalized only after size and SHA-256 match.
+Presence is accessible to holders of a high-entropy device ID; the preview does not enforce a durable mutual friendship graph on the server. Chat history remains local. Files use 32 KiB chunks, an eight-chunk send window and disk-write acknowledgments to bound memory on slow disks and high-latency links. Received files are finalized only after size and SHA-256 match.

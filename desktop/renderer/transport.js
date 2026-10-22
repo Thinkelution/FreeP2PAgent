@@ -129,32 +129,34 @@ export class PeerTransport {
   async cancel(t, tell = true, reason = 'Cancelled') {
     if (t.finished) return;
     t.finished = true; t.status = reason;
-    t.ackWait?.reject(new Error(reason));
     await this.api.cancelFile(t.direction === 'out' ? t.id : t.localId);
     if (tell && this.ready(t.peer)) this.send(t.peer, { type: 'file-cancel', id: t.id });
     this.changed(t);
   }
   async pump(t) {
     if (t.sending || t.finished) return;
-    t.sending = true; t.status = 'Sending'; this.changed(t);
+    t.sending = true; t.status = 'Sending'; t.ackOffset = 0; t.lastAck = Date.now(); this.changed(t);
+    const drain = async (all = false) => {
+      while (!t.finished && (all ? t.ackOffset < t.progress : t.progress - t.ackOffset >= 8 * 32768)) {
+        if (!this.ready(t.peer)) throw new Error('Connection lost');
+        if (Date.now() - t.lastAck > 30000) throw new Error('Recipient stopped acknowledging chunks');
+        await new Promise(r => setTimeout(r, 20));
+      }
+    };
     try {
       while (!t.finished) {
         const dc = this.peers.get(t.peer)?.dc;
         if (dc?.readyState !== 'open') throw new Error('Connection lost');
+        await drain(); if (t.finished) break;
         if (dc.bufferedAmount > 262144) { await new Promise(r => setTimeout(r, 20)); continue; }
         const chunk = await this.api.readFile(t.id);
         if (t.finished) break;
-        if (chunk.data) {
-          // Receiver ACKs after disk write: bounds memory even on slow disks.
-          const ack = new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error('Recipient stopped acknowledging chunks')), 30000);
-            t.ackWait = { resolve: () => { clearTimeout(timer); resolve(); }, reject: e => { clearTimeout(timer); reject(e); } };
-          });
-          this.send(t.peer, { type: 'file-chunk', id: t.id, data: chunk.data });
-          await ack; t.ackWait = null;
-        }
+        if (chunk.data) this.send(t.peer, { type: 'file-chunk', id: t.id, data: chunk.data });
         t.progress = chunk.offset; this.changed(t);
-        if (chunk.done) { this.send(t.peer, { type: 'file-end', id: t.id, sha256: chunk.sha256 }); t.status = 'Verifying at recipient'; this.changed(t); break; }
+        if (chunk.done) {
+          await drain(true); if (t.finished) break;
+          this.send(t.peer, { type: 'file-end', id: t.id, sha256: chunk.sha256 }); t.status = 'Verifying at recipient'; this.changed(t); break;
+        }
       }
     } catch (e) { await this.cancel(t, true, `Failed: ${e.message}`); }
   }
@@ -177,8 +179,8 @@ export class PeerTransport {
     }
     if (!t || t.finished) return;
     if (m.type === 'file-accept' && t.direction === 'out') { void this.pump(t); }
-    else if (m.type === 'file-chunk' && t.direction === 'in' && t.localId) { t.progress = await this.api.writeFile({ id: t.localId, data: m.data }); this.changed(t); this.send(id, { type: 'file-chunk-ack', id: t.id }); }
-    else if (m.type === 'file-chunk-ack' && t.direction === 'out') t.ackWait?.resolve();
+    else if (m.type === 'file-chunk' && t.direction === 'in' && t.localId) { t.progress = await this.api.writeFile({ id: t.localId, data: m.data }); this.changed(t); this.send(id, { type: 'file-chunk-ack', id: t.id, offset: t.progress }); }
+    else if (m.type === 'file-chunk-ack' && t.direction === 'out' && Number.isSafeInteger(m.offset) && m.offset > t.ackOffset && m.offset <= t.progress) { t.ackOffset = m.offset; t.lastAck = Date.now(); }
     else if (m.type === 'file-end' && t.direction === 'in' && t.localId) {
       await this.api.finishFile({ id: t.localId, sha256: m.sha256 });
       t.finished = true; t.status = 'Complete · verified'; this.changed(t); this.send(id, { type: 'file-complete', id: t.id });

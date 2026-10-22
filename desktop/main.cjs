@@ -19,8 +19,10 @@ else {
       return app.quit();
     }
     agent = new Agent(app.getPath('userData'), storage, { url: process.env.FP_COORDINATOR });
-    session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
-    session.defaultSession.setPermissionCheckHandler(() => false);
+    // The bundled UI needs LAN/loopback for WebRTC. Never grant media/location.
+    const networkPermissions = new Set(['local-network', 'loopback-network', 'local-network-access']);
+    session.defaultSession.setPermissionRequestHandler((wc, permission, callback) => callback(wc === window?.webContents && networkPermissions.has(permission)));
+    session.defaultSession.setPermissionCheckHandler((wc, permission) => wc === window?.webContents && networkPermissions.has(permission));
     window = new BrowserWindow({ width: 1160, height: 780, minWidth: 900, minHeight: 620, show: !testing,
       backgroundColor: '#10141b', title: 'FreeP2PAgent', icon: path.join(__dirname, '../assets/icon.png'),
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false }
