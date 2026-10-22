@@ -15,7 +15,9 @@ test('two desktop agents pair, chat, transfer a real file, reject a transfer, an
   async function launch(name) {
     const env = { ...process.env, FP_TEST: '1', FP_PROFILE: path.join(root, name), FP_COORDINATOR: url, FP_SEND_FILE: source, FP_RECEIVE_DIR: receiveDir };
     delete env.ELECTRON_RUN_AS_NODE;
-    const app = await electron.launch({ args: [path.resolve(__dirname, '../..')], env });
+    // Hosted macOS VMs do not reliably resolve mDNS host candidates to themselves.
+    // Keep the real WebRTC transport, but expose loopback candidates in test processes only.
+    const app = await electron.launch({ args: [path.resolve(__dirname, '../..'), '--disable-features=WebRtcHideLocalIpsWithMdns', '--enable-features=WebRtcAllowLoopbackInPeerConnection'], env });
     apps.push(app); const page = await app.firstWindow();
     if (process.env.FP_E2E_RELAY) {
       await page.evaluate(() => {

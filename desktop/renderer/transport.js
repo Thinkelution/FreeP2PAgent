@@ -63,12 +63,22 @@ export class PeerTransport {
     p.dc = dc;
     dc.onopen = async () => {
       clearTimeout(p.timer);
-      let label = 'Connected';
-      const stats = await p.pc.getStats();
-      stats.forEach(s => { if (s.type === 'candidate-pair' && s.state === 'succeeded' && s.nominated) {
-        label = [stats.get(s.localCandidateId)?.candidateType, stats.get(s.remoteCandidateId)?.candidateType].includes('relay') ? 'Relayed · encrypted' : 'Direct · encrypted';
-      }});
-      this.status(id, label);
+      this.status(id, 'Connected · encrypted');
+      const refreshRoute = async () => {
+        if (this.peers.get(id) !== p) return;
+        const pair = p.pc.sctp?.transport?.iceTransport?.getSelectedCandidatePair?.();
+        if (pair) {
+          this.status(id, [pair.local.type, pair.remote.type].includes('relay') ? 'Relayed · encrypted' : 'Direct · encrypted');
+          return;
+        }
+        const stats = await p.pc.getStats();
+        let selected;
+        stats.forEach(s => { if (s.type === 'transport' && s.selectedCandidatePairId) selected = stats.get(s.selectedCandidatePairId); });
+        if (!selected) stats.forEach(s => { if (s.type === 'candidate-pair' && s.state === 'succeeded' && s.nominated) selected = s; });
+        if (selected) this.status(id, [stats.get(selected.localCandidateId)?.candidateType, stats.get(selected.remoteCandidateId)?.candidateType].includes('relay') ? 'Relayed · encrypted' : 'Direct · encrypted');
+      };
+      p.routeTimer = setInterval(() => refreshRoute().catch(() => {}), 2000);
+      await refreshRoute();
     };
     dc.onclose = () => { if (this.peers.get(id) === p) this.close(id); };
     dc.onerror = () => this.fail(id, new Error('Data channel error'));
@@ -177,7 +187,7 @@ export class PeerTransport {
   }
   close(id, retry = true) {
     const p = this.peers.get(id); if (!p) return;
-    this.peers.delete(id); clearTimeout(p.timer); clearTimeout(p.disconnectTimer); p.pc.close();
+    this.peers.delete(id); clearTimeout(p.timer); clearTimeout(p.disconnectTimer); clearInterval(p.routeTimer); p.pc.close();
     for (const t of this.transfers.values()) if (t.peer === id && !t.finished) void this.cancel(t, false, 'Interrupted — send again');
     this.callbacks.status(id, 'Disconnected');
     if (retry) {
